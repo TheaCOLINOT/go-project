@@ -1,0 +1,21 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Go build artifacts
+/server
+*.exe
+*.test
+*.out
+coverage.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
