@@ -11,9 +11,12 @@ import (
 	"syscall"
 	"time"
 
+	applicationauth "github.com/TheaCOLINOT/go-project/internal/application/auth"
+	applicationuser "github.com/TheaCOLINOT/go-project/internal/application/user"
 	"github.com/TheaCOLINOT/go-project/internal/config"
 	deliveryhttp "github.com/TheaCOLINOT/go-project/internal/delivery/http"
 	"github.com/TheaCOLINOT/go-project/internal/infrastructure/persistence/postgres"
+	"github.com/TheaCOLINOT/go-project/internal/infrastructure/security"
 )
 
 func main() {
@@ -36,9 +39,14 @@ func run() error {
 	}
 	defer db.Close()
 
+	users := postgres.NewUserRepository(db)
+	tokens := postgres.NewAuthTokenRepository(db)
+	authService := applicationauth.New(users, tokens, passwordHasher{})
+	userService := applicationuser.New(users)
+
 	server := &http.Server{
 		Addr:              config.HTTPAddress(),
-		Handler:           deliveryhttp.NewRouter(),
+		Handler:           deliveryhttp.NewRouter(authService, userService),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -71,4 +79,14 @@ func run() error {
 	}
 
 	return nil
+}
+
+type passwordHasher struct{}
+
+func (passwordHasher) Hash(password string) (string, error) {
+	return security.HashPassword(password)
+}
+
+func (passwordHasher) Verify(encoded, password string) bool {
+	return security.VerifyPassword(encoded, password)
 }
